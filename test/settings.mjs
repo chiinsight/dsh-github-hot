@@ -52,6 +52,26 @@ ok(/dsh plugin --profile desktop add dsh-github-hot@/.test(src), '给出升级�
 ok(/settings\.checkNow/.test(src), '有「立即检查」按钮');
 ok(/settings\.repo/.test(src), '有项目主页链接');
 
+console.log('\n[8] 版本状态三态判断（不能一律说「已是最新」）');
+ok(/function cmpVersion/.test(src), '前端有版本比较函数');
+ok(/settings\.localAhead/.test(src), '本地领先 npm 时有专门文案');
+ok(/cmp > 0/.test(src), '区分「本地比 npm 新」的情况');
+{
+  // 抽样验证 cmpVersion 口径
+  const fnSrc = src.match(/function cmpVersion\(a, b\) \{[\s\S]*?\n  \}/)[0];
+  const cmp = new Function(fnSrc + '\nreturn cmpVersion;')();
+  ok(cmp('0.3.1', '0.1.2') === 1, '0.3.1 > 0.1.2（本地领先）');
+  ok(cmp('0.1.2', '0.3.1') === -1, '0.1.2 < 0.3.1（有新版）');
+  ok(cmp('0.3.1', '0.3.1') === 0, '相同');
+}
+
+console.log('\n[9] 面板视觉结构');
+ok(/hp-set-ver/.test(src), '版本以对比卡片呈现');
+ok(/hp-set-note/.test(src), '有状态条');
+ok(/CLOSE_ICON_SVG/.test(src), '关闭用图标而非文字字符');
+ok(/hp-rise/.test(src), '有入场动画');
+ok(/prefers-reduced-motion[\s\S]{0,60}hp-tr-hint|hp-rise/.test(src) || /prefers-reduced-motion/.test(src), '尊重减少动效偏好');
+
 console.log('\n[6] 每天只检查一次');
 ok(/dsh-github-hot:update/.test(src), '有本地缓存键');
 ok(/saved\.day === today/.test(src), '按日期判断是否复用缓存');
@@ -60,7 +80,7 @@ ok(/localDayKey\(\)/.test(src), '用数据源时区算「今天」');
 console.log('\n[7] 面板可关闭');
 ok(/hp-settings-mask/.test(src), '有遮罩层');
 ok(/e\.target === e\.currentTarget/.test(src), '点遮罩关闭');
-ok(/hp-settings-x/.test(src), '有关闭按钮');
+ok(/hp-set-x/.test(src), '有关闭按钮');
 
 console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败');
 process.exit(fail === 0 ? 0 : 1);

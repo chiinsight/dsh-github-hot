@@ -39,13 +39,20 @@ ok(ny.d === dayKeyInSourceTz(), '纽约时区算出的日期与上海一致：' 
 ok(ny.w === currentWeekMonday(), '周一也一致：' + ny.w);
 
 console.log('\n[3] 缓存结构校验');
+// v4 起：必须带 glance 数组，否则视为旧结构缓存（界面会拿不到问答表）
+const G = { glance: [] };
 ok(detailShapeOk(null) === false, 'null 不算有效');
-ok(detailShapeOk({}) === true, '没有曲线也算有效（只是没取到曲线）');
-ok(detailShapeOk({ chart: null }) === true, 'chart 为 null 有效');
-ok(detailShapeOk({ chart: { series: [] } }) === false, '空 series 无效');
-ok(detailShapeOk({ chart: { series: [{ date: '2026-11-03', stars: 1 }] } }) === true, '带 date 的点有效');
-ok(detailShapeOk({ chart: { series: [{ stars: 1 }] } }) === false, '缺 date 的点无效（会重取）');
-ok(detailShapeOk({ chart: { series: [{ date: 'bad', stars: 1 }] } }) === false, 'date 格式不对无效');
+ok(detailShapeOk({}) === false, '缺 glance 字段视为旧缓存（v4 起）');
+ok(detailShapeOk({ ...G }) === true, '有 glance 无曲线也算有效（只是没取到曲线）');
+ok(detailShapeOk({ ...G, chart: null }) === true, 'chart 为 null 有效');
+ok(detailShapeOk({ ...G, chart: { series: [] } }) === false, '空 series 无效');
+ok(detailShapeOk({ ...G, chart: { series: [{ date: '2026-11-03', stars: 1 }] } }) === true, '带 date 的点有效');
+ok(detailShapeOk({ ...G, chart: { series: [{ stars: 1 }] } }) === false, '缺 date 的点无效（会重取）');
+ok(detailShapeOk({ ...G, chart: { series: [{ date: 'bad', stars: 1 }] } }) === false, 'date 格式不对无效');
+ok(detailShapeOk({ glance: null }) === false, 'glance 为 null 无效');
+// 关键回归：取数失败的结果曾被写入缓存，导致那天再点同一个项目永远失败
+ok(detailShapeOk({ glance: [], pageError: 'fetch failed' }) === false, '带 pageError 的缓存视为无效（会重取）');
+ok(detailShapeOk({ glance: [], pageError: null }) === true, 'pageError 为 null 时仍有效');
 
 console.log('\n[4] CSV 解析边界');
 ok(parseCsv('').length === 0, '空串');

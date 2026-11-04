@@ -41,6 +41,11 @@ function findInPnpm(profileDir, pkgPrefix) {
  * 会拿到两份不同的 React 副本，renderToString 会报 "Objects are not valid as a React child"。
  */
 export function loadReact() {
+  // 优先使用开发依赖，使测试不依赖本机 Harness 的安装布局。
+  try {
+    const require = createRequire(import.meta.url);
+    return { React: require('react'), renderToString: require('react-dom/server').renderToString };
+  } catch { /* 兼容只有宿主依赖的开发环境 */ }
   const home = dshHome();
   for (const profile of ['desktop', 'web', 'headless']) {
     const dir = join(home, 'profiles', profile);

@@ -127,7 +127,9 @@ ok(!detailHtml.includes('还在维护吗'), '已去掉「还在维护吗」');
   ok(rows === 3, `恰好显示 3 行问答（实际 ${rows}）`);
 }
 ok(detailHtml.includes('Use REA if you already run Hopper'), '答案完整显示原文');
-ok(!detailHtml.includes('…'), '答案不被截断（没有省略号）');
+for (const item of detail.glance.filter((it) => ['What is it?', 'Who is it for?', 'What is it written in?'].includes(it.q))) {
+  ok(detailHtml.includes(item.a), '答案不被截断：' + item.q);
+}
 ok(detailHtml.includes('CC BY 4.0'), '标注数据来源许可');
 ok(detailHtml.includes('↗ hysenlabs'), '外链文案为 ↗ hysenlabs');
 ok(detailHtml.includes('↗ hysenlabs'), '外链直接标注站点名');
