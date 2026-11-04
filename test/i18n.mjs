@@ -1,8 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-const lines = readFileSync(fileURLToPath(new URL('../lib/client.js', import.meta.url)), 'utf8').split('\n');
-// COPY 从 102 行(1-based) 到 translate 之前
-const block = lines.slice(101, 262).join('\n');
+const srcText = readFileSync(fileURLToPath(new URL('../lib/client.js', import.meta.url)), 'utf8');
+const lines = srcText.split('\n');
+// 动态定位 COPY 与 translate 的边界（代码增删后行号会变，不能写死）
+const copyStart = lines.findIndex((l) => l.startsWith('  const COPY = {'));
+const translateEnd = lines.findIndex((l, i) => i > copyStart && l === '  }' && lines.slice(copyStart, i).some((x) => x.startsWith('  function translate')));
+if (copyStart < 0 || translateEnd < 0) {
+  console.log('  ✗ 找不到 COPY / translate 的定义');
+  process.exit(1);
+}
+const block = lines.slice(copyStart, translateEnd + 1).join('\n');
 const factory = new Function(block + '\nreturn { COPY, translate };');
 const { COPY, translate } = factory();
 
