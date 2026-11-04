@@ -18,7 +18,7 @@ const ok = (c, m, x) => { if (c) { pass++; console.log('  ✓ ' + m); } else { f
 
 console.log('[1] 中文：年月日');
 const zhBoard = { window: { end: '2026-11-04' } };
-ok(dataDateText(zhBoard, 'zh') === '2026年11月4日', '中文格式 2026年11月4日', dataDateText(zhBoard,'zh'));
+ok(dataDateText(zhBoard, 'zh') === '26.11.4', '中文格式 26.11.4（紧凑两位年）', dataDateText(zhBoard,'zh'));
 
 console.log('\n[2] 英文：月 日, 年');
 ok(dataDateText(zhBoard, 'en') === 'Nov 4, 2026', '英文格式 Nov 4, 2026', dataDateText(zhBoard,'en'));
@@ -32,11 +32,11 @@ for (const [d, exp] of months) {
 console.log('\n[4] 边界情况');
 ok(dataDateText(null, 'zh') === '今日', '空数据中文', dataDateText(null,'zh'));
 ok(dataDateText(null, 'en') === 'today', '空数据英文', dataDateText(null,'en'));
-ok(dataDateText({week:'2026-10-26'}, 'zh') === '2026年10月26日', '周榜用 week 字段', dataDateText({week:'2026-10-26'},'zh'));
+ok(dataDateText({week:'2026-10-26'}, 'zh') === '26.10.26', '周榜用 week 字段', dataDateText({week:'2026-10-26'},'zh'));
 
 console.log('\n[5] 不再省略年份（关键回归）');
 const r = dataDateText(zhBoard, 'zh');
-ok(r.includes('2026'), '中文含年份');
+ok(r.startsWith('26.'), '中文含两位年份（26.xx.xx）', r);
 ok(dataDateText(zhBoard, 'en').includes('2026'), '英文含年份');
 
 console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败');

@@ -101,12 +101,27 @@ ok(emptyHtml.includes('暂无星数曲线'), '无数据时给明确提示而不�
 
 /* ---------- 4. 详情（真实 Detail 组件）---------- */
 console.log('\n[4] Detail 组件（真实）');
-const detail = { repository: rows[0].repository, desc: 'Use REA if you already run Hopper, Ghidra, IDA or Kuna and want a coding agent to drive them with evidence attached.',
-  descSource: 'conclusion', analysisUpdated: 'November 3, 2026', chart, chartError: null, pageError: null };
-const detailHtml = renderToString(React.createElement(T.Detail, { React, item: rows[0], detail, loading: false, error: null, onClose: () => {} }));
-ok(detailHtml.includes('项目简介'), '有简介标题');
-ok(detailHtml.includes('Use REA if you already run Hopper'), '展示真实简介原文');
-ok(detailHtml.includes('编辑结论'), '标注简介来源');
+const detail = {
+  repository: rows[0].repository,
+  desc: 'Use REA if you already run Hopper, Ghidra, IDA or Kuna and want a coding agent to drive them with evidence attached.',
+  descSource: 'conclusion',
+  // 详情页现在渲染「一眼看懂」问答表，不再是单段简介
+  glance: [
+    { q: 'What is it?', a: 'Use REA if you already run Hopper, Ghidra, IDA or Kuna and want a coding agent to drive them with evidence attached.' },
+    { q: 'Who is it for?', a: 'Reverse engineers who already use those tools.' },
+    { q: 'Can I use it commercially?', a: 'Yes. MIT is a permissive licence.' },
+    { q: 'Is it still maintained?', a: 'Yes. New commits within the last day.' },
+    { q: 'What is it written in?', a: "Mainly TypeScript." },
+  ],
+  analysisUpdated: 'November 3, 2026', chart, chartError: null, pageError: null };
+const detailHtml = renderToString(React.createElement(T.Detail, { React, lang: 'zh', item: rows[0], detail, loading: false, error: null, onClose: () => {} }));
+ok(detailHtml.includes('一眼看懂'), '有「一眼看懂」标题');
+ok(detailHtml.includes('它是什么？'), '问答标题本地化为中文');
+ok(detailHtml.includes('可以商用吗？'), '展示「能不能商用」这条');
+ok(detailHtml.includes('还在维护吗？'), '展示「是否维护」这条');
+ok(detailHtml.includes('Use REA if you already run Hopper'), '答案完整显示原文');
+ok(!detailHtml.includes('…'), '答案不被截断（没有省略号）');
+ok(detailHtml.includes('CC BY 4.0'), '标注数据来源许可');
 ok(detailHtml.includes('↗ hysenlabs'), '外链文案为 ↗ hysenlabs');
 ok(detailHtml.includes('↗ hysenlabs'), '外链直接标注站点名');
 ok(detailHtml.includes('↗ hysenlabs'), '外链直接标注站点名');
