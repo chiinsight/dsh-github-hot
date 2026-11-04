@@ -2,6 +2,10 @@
 
 给 DeepSeek Harness 的 **GitHub 涨星榜**插件：日/周/月三榜切换，展示每期涨星 **TOP20**，主打可视化。
 
+![榜单视图](docs/screenshots/board.webp)
+
+![统计视图](docs/screenshots/stats.webp)
+
 ## 功能
 
 - **日榜 / 周榜 / 月榜** 顶部一键切换，无需刷新页面
