@@ -1,0 +1,4 @@
+# 测试与内部文档不发布到 npm
+test/
+.gitignore
+.npmignore

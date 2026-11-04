@@ -1,0 +1,13 @@
+# 依赖
+node_modules/
+.pnpm-store/
+
+# 本机与编辑器
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# 缓存与日志
+*.log
+.cache/

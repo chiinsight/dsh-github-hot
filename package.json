@@ -1,0 +1,57 @@
+{
+  "name": "dsh-github-hot",
+  "version": "0.1.0",
+  "description": "DSH GitHub 涨星榜插件：日/周/月三榜切换，展示每期涨星 TOP20。卡片流榜单，每个项目带独立中文简介、星数曲线趋势图与多项目走势对比。",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "github",
+    "trending",
+    "star-growth",
+    "dashboard"
+  ],
+  "license": "MIT",
+  "author": "chiinsight",
+  "homepage": "https://github.com/chiinsight/dsh-github-hot#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chiinsight/dsh-github-hot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chiinsight/dsh-github-hot/issues"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "icon": "assets/icon.svg",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "assets",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "^22.20.0 || >=24.0.0",
+    "dsh": ">=0.1.0-rc.3 <0.3.0-0"
+  },
+  "scripts": {
+    "test": "node test/client.mjs && node test/render.mjs && node test/visual.mjs && node test/baseline.mjs && node test/cache.mjs && node test/uicache.mjs && node test/persist.mjs && node test/smooth.mjs && node test/timezone.mjs && node test/lang.mjs && node test/concurrency.mjs && node test/hardening.mjs && node test/resilience.mjs && node test/parsers.mjs && node test/detail.mjs && node test/avatar.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}
