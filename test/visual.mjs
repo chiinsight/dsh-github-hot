@@ -117,8 +117,15 @@ const detail = {
 const detailHtml = renderToString(React.createElement(T.Detail, { React, lang: 'zh', item: rows[0], detail, loading: false, error: null, onClose: () => {} }));
 ok(detailHtml.includes('一眼看懂'), '有「一眼看懂」标题');
 ok(detailHtml.includes('它是什么？'), '问答标题本地化为中文');
-ok(detailHtml.includes('可以商用吗？'), '展示「能不能商用」这条');
-ok(detailHtml.includes('还在维护吗？'), '展示「是否维护」这条');
+ok(detailHtml.includes('适合谁用？'), '保留「适合谁用」');
+ok(detailHtml.includes('用什么写的？'), '保留「用什么写的」');
+// 「能不能商用」「是否维护」已按要求去掉：前者属法律判断、后者会过期
+ok(!detailHtml.includes('可以商用吗'), '已去掉「可以商用吗」');
+ok(!detailHtml.includes('还在维护吗'), '已去掉「还在维护吗」');
+{
+  const rows = (detailHtml.match(/hp-glance-row/g) || []).length;
+  ok(rows === 3, `恰好显示 3 行问答（实际 ${rows}）`);
+}
 ok(detailHtml.includes('Use REA if you already run Hopper'), '答案完整显示原文');
 ok(!detailHtml.includes('…'), '答案不被截断（没有省略号）');
 ok(detailHtml.includes('CC BY 4.0'), '标注数据来源许可');
