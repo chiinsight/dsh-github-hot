@@ -1,6 +1,6 @@
 {
   "name": "dsh-github-hot",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "DSH GitHub 涨星榜插件：日/周/月三榜切换，展示每期涨星 TOP20。卡片流榜单，每个项目带独立中文简介、星数曲线趋势图与多项目走势对比。",
   "keywords": [
     "dsh",
