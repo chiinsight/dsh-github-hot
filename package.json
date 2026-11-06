@@ -1,6 +1,6 @@
 {
   "name": "dsh-github-hot",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "DSH GitHub 涨星榜插件：日/周/月三榜切换，展示每期涨星 TOP20。卡片流榜单，每个项目带独立中文简介、星数曲线趋势图与多项目走势对比。",
   "keywords": [
     "dsh",
@@ -42,7 +42,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "test": "node test/client.mjs && node test/render.mjs && node test/visual.mjs && node test/baseline.mjs && node test/cache.mjs && node test/uicache.mjs && node test/persist.mjs && node test/smooth.mjs && node test/timezone.mjs && node test/lang.mjs && node test/i18n.mjs && node test/settings.mjs && node test/dateformat.mjs && node test/zcache.mjs && node test/concurrency.mjs && node test/hardening.mjs && node test/resilience.mjs && node test/parsers.mjs && node test/detail.mjs && node test/avatar.mjs && node test/pickactions.mjs && node --test test/interactions.mjs test/routes.mjs"
+    "test": "node test/client.mjs && node test/render.mjs && node test/visual.mjs && node test/baseline.mjs && node test/cache.mjs && node test/uicache.mjs && node test/persist.mjs && node test/smooth.mjs && node test/timezone.mjs && node test/lang.mjs && node test/i18n.mjs && node test/settings.mjs && node test/dateformat.mjs && node test/zcache.mjs && node test/concurrency.mjs && node test/hardening.mjs && node test/resilience.mjs && node test/parsers.mjs && node test/detail.mjs && node test/avatar.mjs && node test/pickactions.mjs && node --test test/interactions.mjs test/routes.mjs && node --test test/newbadge.mjs"
   },
   "dsh": {
     "bundle": {
