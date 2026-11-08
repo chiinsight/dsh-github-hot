@@ -82,6 +82,9 @@ test('失败的榜单会退避，不会每次请求都重抓', async () => {
   assert.equal(body.refreshing, false, '退避中 refreshing 应为 false（避免前端空转）');
   // 退避期间仍然要有数据可显示
   assert.equal((body.boards[0].rows || []).length, 3, '退避时仍返回旧数据');
+  assert.equal(body.boards[0].ok, false, '后台失败后不能把旧缓存标成成功');
+  assert.match(body.boards[0].error, /boom/);
+  assert.ok(body.boards[0].staleAt, '失败时提供旧快照时间供界面提示');
 });
 
 

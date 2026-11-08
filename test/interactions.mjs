@@ -16,13 +16,15 @@ const click = async (root, label) => {
   await act(async () => { button.props.onClick(); });
 };
 
-async function mount({ lang = 'en', fetch, boards, now, retries } = {}) {
+async function mount({ lang = 'en', fetch, boards, now, retries, boardRetries, plainDeadlines } = {}) {
   let registration, Panel;
   const pending = [], intervals = new Set(), requests = [];
   const store = new Map([['dsh-github-hot:lang', lang]]);
   const sandbox = {
     console, AbortController, clearTimeout,
     setTimeout: (fn, ms) => {
+      if (plainDeadlines && ms === 10000) { plainDeadlines.push(fn); return 0; }
+      if (boardRetries && ms === 8000) { boardRetries.push(fn); return 0; }
       if (retries && ms === 2500) { retries.push(fn); return 0; }
       return setTimeout(fn, ms);
     },
@@ -269,4 +271,111 @@ test('twenty nearly equal endpoints keep separate avatars and true value dots', 
     if (dashboard) await act(async () => dashboard.unmount());
     await app.close();
   }
+});
+
+test('background refresh remains visible until a completed response arrives', async () => {
+  const polls = [];
+  let calls = 0;
+  const app = await mount({ boardRetries: polls, fetch: (url) => {
+    if (!url.pathname.endsWith('/boards')) return;
+    calls++;
+    return response({ fetchedAt: '2026-11-08T00:00:00Z', refreshing: calls === 1,
+      boards: [{ id: 'day', label: 'Daily', ok: true, rows: [row('o/a')] }] });
+  } });
+  try {
+    assert.ok(text(app.renderer.root).includes('Fetching the latest data'));
+    const refresh = app.renderer.root.findAllByType('button').find((b) => text(b) === 'Refreshing…');
+    assert.equal(refresh.props.disabled, true);
+    assert.equal(polls.length, 1);
+    await act(async () => { polls.shift()(); });
+    assert.equal(app.renderer.root.findAll((n) => n.props.className === 'hp-banner hp-fetch-status').length, 0, 'completed refresh has no permanent banner');
+    assert.equal(app.renderer.root.findAllByType('button').find((b) => text(b) === 'Refresh').props.disabled, false);
+  } finally { await app.close(); }
+});
+
+test('collection replaces summary cards and supports paging, search and project details', async () => {
+  const collection = Array.from({ length: 25 }, (_, i) => ({ ...row('archive/project-' + String(i).padStart(2, '0')),
+    firstDay: '2026-11-01', lastDay: '2026-11-05', isNew: true, language: 'TypeScript', license: 'MIT' }));
+  const app = await mount({ fetch: (url) => {
+    if (url.pathname.endsWith('/boards')) return response({
+      boards: [{ id: 'day', label: 'Daily', ok: true, rows: [row('o/a')] }], collection,
+    });
+    if (url.pathname.endsWith('/detail')) return response({ detail: { desc: 'Archived project description' } });
+  } });
+  try {
+    assert.equal(app.renderer.root.findAll((n) => n.props.className === 'hp-stat-card rose').length, 0);
+    await click(app.renderer.root, 'Browse collection →');
+    const entries = () => app.renderer.root.findAllByType('article').filter((n) => n.props.className.includes('hp-collection-row'));
+    assert.equal(entries().length, 20);
+    assert.equal(entries()[0].findAllByType('img').length, 1, 'same avatar component as ranking cards');
+    assert.ok(text(entries()[0]).includes('TypeScript'));
+    assert.ok(text(entries()[0]).includes('MIT'));
+    assert.ok(text(entries()[0]).includes('Daily gain when ranked'));
+    assert.equal(entries()[0].findAll((n) => n.props.className === 'hp-new').length, 0, 'archived entries do not display NEW');
+    await click(app.renderer.root, 'Next');
+    assert.equal(entries().length, 5);
+    const input = app.renderer.root.findByType('input');
+    await act(async () => input.props.onChange({ target: { value: 'project-03' } }));
+    assert.equal(entries().length, 1);
+    assert.ok(text(entries()[0]).includes('First collected 2026-11-01'));
+    await act(async () => entries()[0].props.onClick());
+    assert.equal(app.renderer.root.findByType(app.components.Detail).props.item.repository, 'archive/project-03');
+  } finally { await app.close(); }
+});
+
+
+test('new project alert counts only latest-day arrivals, independently of three-day NEW badges', async () => {
+  const app = await mount({ boards: [{ id: 'day', label: 'Daily', ok: true, window: { end: '2026-11-08' }, rows: [
+    { ...row('o/today'), isNew: true, isNewToday: true },
+    { ...row('o/yesterday', 2), isNew: true, isNewToday: false },
+  ] }] });
+  try {
+    const alert = app.renderer.root.find((n) => n.props.className === 'hp-hero-main');
+    assert.ok(text(alert).includes('1 new projects appeared today!'));
+    assert.ok(text(alert).includes('o/today'));
+    assert.equal(text(alert).includes('o/yesterday'), false);
+    assert.equal(app.renderer.root.findAll((n) => n.props.className === 'hp-banner hp-fetch-status').length, 0);
+    const newcomer = alert.findByType('button');
+    await act(async () => newcomer.props.onClick());
+    assert.equal(app.renderer.root.findByType(app.components.Detail).props.item.repository, 'o/today');
+  } finally { await app.close(); }
+});
+
+
+test('plain explanation loads independently of original detail and credits the model', async () => {
+  const app = await mount({ fetch: (url, pending) => {
+    if (url.pathname.endsWith('/detail')) return new Promise((resolve) => pending.push(resolve));
+    if (url.pathname.endsWith('/explain')) return response({ status: 'ready', explanation: {
+      what: 'Find public profiles by username.',
+    } });
+  } });
+  try {
+    const card = app.renderer.root.findAllByType(app.components.Card)[0];
+    await act(async () => card.props.onSelect(card.props.item));
+    assert.equal(app.renderer.root.findByType(app.components.Detail).props.loading, true, 'original detail can still be loading');
+    const plain = app.renderer.root.find((n) => n.props.className === 'hp-plain');
+    assert.ok(text(plain).includes('Find public profiles'));
+    assert.ok(text(plain).includes('Generated by the DSH model'));
+    assert.equal(plain.findAllByType('dt').length, 0, 'plain explanation is a single direct paragraph');
+    assert.equal(text(plain).includes('When would I use it?'), false);
+  } finally { await app.close(); }
+});
+
+test('plain explanation stops waiting at its deadline and ignores late responses', async () => {
+  const deadlines = [];
+  let resolveExplanation;
+  const app = await mount({ plainDeadlines: deadlines, fetch: (url, pending) => {
+    if (url.pathname.endsWith('/explain')) return new Promise((resolve) => { resolveExplanation = resolve; pending.push(resolve); });
+  } });
+  try {
+    const card = app.renderer.root.findAllByType(app.components.Card)[0];
+    await act(async () => card.props.onSelect(card.props.item));
+    assert.equal(deadlines.length, 1);
+    await act(async () => deadlines[0]());
+    const plain = () => app.renderer.root.find((n) => n.props.className === 'hp-plain');
+    assert.ok(text(plain()).includes('Generation is taking longer'));
+    await act(async () => resolveExplanation(response({ status: 'ready', explanation: { what: 'Late explanation', when: 'Late use case' } })));
+    assert.equal(text(plain()).includes('Late explanation'), false);
+    assert.ok(plain().findAllByType('button').some((b) => text(b) === 'Try again'));
+  } finally { await app.close(); }
 });

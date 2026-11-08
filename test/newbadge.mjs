@@ -41,6 +41,8 @@ test('rank_change 为空 → 标记为新面孔；有数字 → 不是', async (
   assert.ok(day, '应有日榜');
   const fresh = day.rows.find((r) => r.repository === 'o/brand-new');
   const old = day.rows.find((r) => r.repository === 'o/old');
+  assert.equal(fresh.isNewToday, true);
+  assert.equal(old.isNewToday, false);
   assert.equal(fresh.isNew, true, 'rank_change 为空应算新面孔');
   assert.equal(old.isNew, false, 'rank_change 有值不算新面孔');
   assert.equal(old.rankChange, -2, '名次变化照旧解析');
@@ -51,7 +53,16 @@ test('前端卡片会渲染 NEW 徽章，且随语言给不同 tooltip', async (
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
   assert.match(src, /item\.isNew \? h\('span', \{ className: 'hp-new'/, '卡片按 isNew 渲染徽章');
-  assert.match(src, /'card\.newTip': '今天新上榜'/, '中文 tooltip');
-  assert.match(src, /'card\.newTip': 'New on the board today'/, '英文 tooltip');
+  assert.match(src, /'card\.newTip': '近 3 个榜单日内新增上榜'/, '中文 tooltip');
+  assert.match(src, /'card\.newTip': 'New within the last 3 ranking days'/, '英文 tooltip');
   assert.match(src, /\.hp-root\.hp-paper \.hp-new/, '纸感主题有独立样式');
+});
+
+
+test('新面孔只在日榜标记，周榜/月榜不标（避免整排 NEW 误导）', async () => {
+  const { readFileSync } = await import('node:fs');
+  const host = readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8');
+  assert.match(host, /周榜不做新面孔标记/, '周榜显式不标');
+  assert.match(host, /只有日榜标新面孔/, '月榜显式清掉标记');
+  assert.match(host, /if \(path\.includes\('30d'\)\) \{[\s\S]{0,80}row\.isNew = false/, '30d 榜一次性置 false');
 });
