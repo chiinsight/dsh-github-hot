@@ -74,7 +74,9 @@ ok(/prefers-reduced-motion[\s\S]{0,60}hp-tr-hint|hp-rise/.test(src) || /prefers-
 
 console.log('\n[6] 每天只检查一次');
 ok(/dsh-github-hot:update/.test(src), '有本地缓存键');
-ok(/saved\.day === today/.test(src), '按日期判断是否复用缓存');
+// 缓存只用于先画出来，仍会向宿主确认（否则升级后一直显示"有新版本"）
+ok(/if \(saved && saved\.latest\) setUpdateInfo\(saved\)/.test(src), '缓存仅用于先渲染');
+ok(!/saved\.day === today[\s\S]{0,60}return undefined/.test(src), '不再因当天缓存直接跳过确认');
 ok(/localDayKey\(\)/.test(src), '用数据源时区算「今天」');
 
 console.log('\n[7] 面板可关闭');
