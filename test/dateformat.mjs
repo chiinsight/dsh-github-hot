@@ -34,6 +34,9 @@ ok(dataDateText(null, 'zh') === '今日', '空数据中文', dataDateText(null,'
 ok(dataDateText(null, 'en') === 'today', '空数据英文', dataDateText(null,'en'));
 ok(dataDateText({week:'2026-10-26'}, 'zh') === '26.10.26', '周榜用 week 字段', dataDateText({week:'2026-10-26'},'zh'));
 
+ok(dataDateText({window:{end:'November 8, 2026'}}, 'zh') === '26.11.8', '周榜英文日期按真实窗口显示');
+ok(dataDateText({window:{end:'November 8, 2026'}}, 'en') === 'Nov 8, 2026', '周榜英文日期格式');
+
 console.log('\n[5] 不再省略年份（关键回归）');
 const r = dataDateText(zhBoard, 'zh');
 ok(r.startsWith('26.'), '中文含两位年份（26.xx.xx）', r);

@@ -379,3 +379,45 @@ test('plain explanation stops waiting at its deadline and ignores late responses
     assert.ok(plain().findAllByType('button').some((b) => text(b) === 'Try again'));
   } finally { await app.close(); }
 });
+
+
+test('period buttons leave the collection and show the matching ranking, including reselecting Daily', async () => {
+  const app = await mount({ boards: [
+    { id: 'day', label: 'Daily', ok: true, rows: [row('nav/day')] },
+    { id: 'week', label: 'Weekly', ok: true, rows: [row('nav/week')] },
+    { id: 'month', label: 'Monthly', ok: true, rows: [row('nav/month')] },
+  ] });
+  try {
+    for (const [label, repo] of [['Daily','nav/day'], ['Weekly','nav/week'], ['Monthly','nav/month']]) {
+      await click(app.renderer.root, 'Daily discoveries');
+      assert.ok(app.renderer.root.findAllByType('input').length);
+      await click(app.renderer.root, label);
+      assert.equal(app.renderer.root.findAllByType('input').length, 0);
+      const cards = app.renderer.root.findAllByType(app.components.Card);
+      assert.equal(cards.length, 1);
+      assert.equal(cards[0].props.item.repository, repo);
+    }
+  } finally { await app.close(); }
+});
+
+test('new project notice follows period and date without treating missing weekly/monthly evidence as zero', async () => {
+  const app = await mount({ lang: 'zh', boards: [
+    { id: 'day', label: '日榜', ok: true, window: { end:'2026-11-08' }, rows: [{ ...row('notice/day'), isNewToday:true }] },
+    { id: 'week', label: '周榜', ok: true, week:'2026-11-02', window: {end:'November 8, 2026'}, rows:[row('notice/week')] },
+    { id: 'month', label: '月榜', ok: true, window:{end:'2026-11-09'}, rows:[row('notice/month')] },
+  ] });
+  const notice = () => text(app.renderer.root.find((n) => n.props.className === 'hp-hero-main'));
+  try {
+    assert.ok(notice().includes('今天有 1 个新项目'));
+    await click(app.renderer.root, '周榜');
+    assert.ok(notice().includes('暂无法确认本周新增项目'));
+    assert.ok(notice().includes('按 26.11.8 周榜 TOP10 统计'));
+    assert.equal(notice().includes('notice/day'), false);
+    await click(app.renderer.root, '月榜');
+    assert.ok(notice().includes('暂无法确认本月新增项目'));
+    assert.ok(notice().includes('按 26.11.9 月榜 TOP20 统计'));
+    assert.equal(notice().includes('今天'), false);
+    await click(app.renderer.root, '日榜');
+    assert.ok(notice().includes('今天有 1 个新项目'));
+  } finally { await app.close(); }
+});
