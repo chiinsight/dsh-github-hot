@@ -60,7 +60,10 @@ ok((cardHtml.match(/class="hp-card/g) || []).length >= 10, '渲染出 10 张卡'
 ok(cardHtml.includes('hp-card top1'), '第1名卡片高亮');
 ok(cardHtml.includes('hp-rank r1'), '第1名金徽章');
 ok(cardHtml.includes('morluto') && cardHtml.includes('rea'), '含首项仓库名');
-ok(cardHtml.includes('+4k'), '涨星数紧凑格式化（3988 → +4k）');
+// 用固定的 3988 渲染一张卡：格式化断言不应随当天线上榜单变化而失效
+const fmtCardHtml = renderToString(React.createElement('div', null,
+  React.createElement(T.Card, { React, item: { ...rows[0], starsGained: 3988 }, maxGain: 3988, isSel: false, onSelect: () => {} })));
+ok(fmtCardHtml.includes('+4k'), '涨星数紧凑格式化（3988 → +4k）');
 // 新版卡片：有曲线才画迷你走势；无详情时**不留灰色占位**
 ok(cardHtml.includes('hp-desc-loading'), '详情未到时显示骨架条（而非「暂无简介」）');
 ok(cardHtml.includes('hp-avatar'), '卡片有头像');

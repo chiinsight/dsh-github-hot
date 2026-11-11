@@ -23,7 +23,7 @@ const missing = zhKeys.filter(k => !enKeys.includes(k));
 ok(missing.length === 0, '英文无缺键', missing.join(','));
 
 console.log('\n[2] 关键文案');
-for (const [k, z, e] of [['period.day','日榜','Daily'],['period.week','周榜','Weekly'],['view.board','榜单','Ranking'],['action.refresh','刷新','Refresh'],['detail.introTitle','项目简介','About'],['detail.chartTitle','星数曲线','Star history']]) {
+for (const [k, z, e] of [['period.day','日榜','Daily'],['period.week','周榜','Weekly'],['view.board','榜单','Ranking'],['action.refresh','获取最新数据','Fetch latest data'],['detail.introTitle','项目简介','About'],['detail.chartTitle','星数曲线','Star history']]) {
   ok(translate('zh',k) === z, `${k} → ${z}`, translate('zh',k));
   ok(translate('en',k) === e, `${k} → ${e}`, translate('en',k));
 }

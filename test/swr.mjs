@@ -193,3 +193,43 @@ test('窗口够新但缓存超过 3 小时 → 仍后台验证一次（怕错过
   assert.equal(findLabel(body, '日榜').stale, true, '超过 3 小时应重新验证');
   assert.equal(body.refreshing, true, '应触发后台刷新');
 });
+
+
+test('manual fetch bypasses fresh cache and deduplicates repeated requests to the selected board', async () => {
+  I.__resetBoardState();
+  const end = sourceYesterday();
+  seedBoards({ dayEnd:end, monthEnd:end });
+  let calls = 0, release, options;
+  globalThis.fetch = async (url, init) => {
+    assert.ok(String(url).includes('star-growth-24h.csv'), 'only selected board is fetched');
+    calls++; options = init;
+    return { ok:true, text:() => new Promise((resolve) => { release = resolve; }) };
+  };
+  const first = await get('/dsh-github-hot/boards?force=1&period=day');
+  await new Promise(setImmediate);
+  assert.equal(first.body.refreshing, true);
+  await get('/dsh-github-hot/boards?force=1&period=day');
+  assert.equal(calls, 1);
+  assert.equal(options.cache, 'no-store');
+  assert.equal(options.headers['Cache-Control'], 'no-cache');
+  release('rank,repository,stars_gained,window_start,window_end\n1,fresh/project,12,2026-11-01,' + end);
+  await new Promise(setImmediate);
+  const { body } = await boards();
+  assert.equal(body.boards.find((b) => b.id === 'day').rows[0].repository, 'fresh/project');
+  assert.equal(body.refreshing, false);
+});
+
+test('manual fetch retries a failed board during automatic backoff', async () => {
+  I.__resetBoardState();
+  seedBoards({dayEnd:sourceYesterday(),monthEnd:sourceYesterday()});
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; throw new Error('manual failed'); };
+  await get('/dsh-github-hot/boards?force=1&period=day');
+  await new Promise(setImmediate);
+  const before = calls;
+  const failed = await boards();
+  assert.equal(failed.body.boards.find((b) => b.id === 'day').ok, false);
+  await get('/dsh-github-hot/boards?force=1&period=day');
+  await new Promise(setImmediate);
+  assert.equal(calls, before + 1);
+});

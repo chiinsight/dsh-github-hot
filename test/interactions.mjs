@@ -289,7 +289,7 @@ test('background refresh remains visible until a completed response arrives', as
     assert.equal(polls.length, 1);
     await act(async () => { polls.shift()(); });
     assert.equal(app.renderer.root.findAll((n) => n.props.className === 'hp-banner hp-fetch-status').length, 0, 'completed refresh has no permanent banner');
-    assert.equal(app.renderer.root.findAllByType('button').find((b) => text(b) === 'Refresh').props.disabled, false);
+    assert.equal(app.renderer.root.findAllByType('button').find((b) => text(b) === 'Fetch latest data').props.disabled, false);
   } finally { await app.close(); }
 });
 
@@ -420,4 +420,26 @@ test('new project notice follows period and date without treating missing weekly
     await click(app.renderer.root, '日榜');
     assert.ok(notice().includes('今天有 1 个新项目'));
   } finally { await app.close(); }
+});
+
+
+test('Fetch latest data requests a real upstream refresh for the selected period', async () => {
+  const polls = [];
+  let manual = false;
+  const app = await mount({boardRetries:polls, fetch:(url) => {
+    if(!url.pathname.endsWith('/boards'))return;
+    if(url.searchParams.get('force') === '1') manual = true;
+    return response({fetchedAt:new Date().toISOString(),refreshing:url.searchParams.get('force') === '1',boards:[
+      {id:'day',label:'Daily',ok:true,rows:[row('force/day')],window:{end:'2026-11-10'}},
+      {id:'month',label:'Monthly',ok:true,rows:[row('force/month')],window:{end:'2026-11-10'}},
+    ]});
+  }});
+  try {
+    await click(app.renderer.root,'Monthly');
+    await click(app.renderer.root,'Fetch latest data');
+    assert.equal(manual,true);
+    assert.ok(app.requests.some((u) => u.searchParams.get('force') === '1' && u.searchParams.get('period') === 'month'));
+    await act(async () => polls.shift()());
+    assert.ok(text(app.renderer.root).includes('Fetched from the source. Monthly data through'));
+  }finally{await app.close();}
 });
