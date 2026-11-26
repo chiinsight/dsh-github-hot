@@ -331,7 +331,7 @@ test('new project alert counts only latest-day arrivals, independently of three-
   ] }] });
   try {
     const alert = app.renderer.root.find((n) => n.props.className === 'hp-hero-main');
-    assert.ok(text(alert).includes('1 new projects appeared today!'));
+    assert.ok(text(alert).includes('1 new projects appeared in this snapshot!'));
     assert.ok(text(alert).includes('o/today'));
     assert.equal(text(alert).includes('o/yesterday'), false);
     assert.equal(app.renderer.root.findAll((n) => n.props.className === 'hp-banner hp-fetch-status').length, 0);
@@ -408,7 +408,7 @@ test('new project notice follows period and date without treating missing weekly
   ] });
   const notice = () => text(app.renderer.root.find((n) => n.props.className === 'hp-hero-main'));
   try {
-    assert.ok(notice().includes('今天有 1 个新项目'));
+    assert.ok(notice().includes('本期有 1 个新项目'));
     await click(app.renderer.root, '周榜');
     assert.ok(notice().includes('暂无法确认本周新增项目'));
     assert.ok(notice().includes('按 26.11.8 周榜 TOP10 统计'));
@@ -418,7 +418,7 @@ test('new project notice follows period and date without treating missing weekly
     assert.ok(notice().includes('按 26.11.9 月榜 TOP20 统计'));
     assert.equal(notice().includes('今天'), false);
     await click(app.renderer.root, '日榜');
-    assert.ok(notice().includes('今天有 1 个新项目'));
+    assert.ok(notice().includes('本期有 1 个新项目'));
   } finally { await app.close(); }
 });
 
@@ -428,8 +428,10 @@ test('Fetch latest data requests a real upstream refresh for the selected period
   let manual = false;
   const app = await mount({boardRetries:polls, fetch:(url) => {
     if(!url.pathname.endsWith('/boards'))return;
-    if(url.searchParams.get('force') === '1') manual = true;
-    return response({fetchedAt:new Date().toISOString(),refreshing:url.searchParams.get('force') === '1',boards:[
+    const forced = url.searchParams.get('force') === '1';
+    if (forced) manual = true;
+    return response({fetchedAt:new Date().toISOString(), refreshing:manual,
+      refreshingPeriods:forced ? ['month','week'] : manual ? ['week'] : [], boards:[
       {id:'day',label:'Daily',ok:true,rows:[row('force/day')],window:{end:'2026-11-10'}},
       {id:'month',label:'Monthly',ok:true,rows:[row('force/month')],window:{end:'2026-11-10'}},
     ]});
@@ -440,6 +442,42 @@ test('Fetch latest data requests a real upstream refresh for the selected period
     assert.equal(manual,true);
     assert.ok(app.requests.some((u) => u.searchParams.get('force') === '1' && u.searchParams.get('period') === 'month'));
     await act(async () => polls.shift()());
-    assert.ok(text(app.renderer.root).includes('Fetched from the source. Monthly data through'));
+    assert.ok(text(app.renderer.root).includes('Checked the Monthly ranking. The snapshot date is still'),
+      'monthly result is shown while a separate weekly refresh is active');
   }finally{await app.close();}
+});
+
+test('detail shows the original purpose while the Chinese translation is pending', async () => {
+  let finishTranslation;
+  const original = { repository: 'o/a', glance: [{ q: 'What is it?', a: 'Sort photos by date.' }] };
+  const app = await mount({ lang: 'zh', fetch: (url, pending) => {
+    if (!url.pathname.endsWith('/detail')) return;
+    if (url.searchParams.get('translate') === 'cached') return response({ detail: original });
+    return new Promise((resolve) => { finishTranslation = resolve; pending.push(resolve); });
+  } });
+  try {
+    const card = app.renderer.root.findAllByType(app.components.Card)[0];
+    await act(async () => card.props.onSelect(card.props.item));
+    assert.ok(text(app.renderer.root).includes(original.glance[0].a));
+    assert.equal(app.renderer.root.findByType(app.components.Detail).props.loading, false);
+    await act(async () => finishTranslation(response({ detail: { ...original, glanceZh: ['按拍摄日期整理照片。'] } })));
+    assert.ok(text(app.renderer.root).includes('按拍摄日期整理照片。'));
+  } finally { await app.close(); }
+});
+
+test('detail stops showing a pending curve when the chart never arrives', async () => {
+  const retries = [];
+  const app = await mount({ retries, fetch: (url) => {
+    if (url.pathname.endsWith('/detail')) return response({ detail: { chartPending: true } });
+  } });
+  try {
+    const card = app.renderer.root.findAllByType(app.components.Card)[0];
+    await act(async () => card.props.onSelect(card.props.item));
+    for (let i = 0; i < 4; i++) {
+      assert.equal(retries.length, 1);
+      await act(async () => retries.shift()());
+    }
+    assert.equal(retries.length, 0);
+    assert.equal(app.renderer.root.findByType(app.components.Detail).props.detail.chartPending, false);
+  } finally { await app.close(); }
 });

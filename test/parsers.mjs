@@ -6,7 +6,12 @@ const UA = { 'User-Agent': 'dsh-hysen-pulse/test' };
 let pass = 0, fail = 0;
 const ok = (cond, msg, extra) => { if (cond) { pass++; console.log('  ✓ ' + msg); } else { fail++; console.log('  ✗ ' + msg + (extra ? ' | ' + extra : '')); } };
 
-const get = async (u) => (await fetch(u, { headers: UA })).text();
+const get = async (u, allowMissing = false) => {
+  const response = await fetch(u, { headers: UA });
+  if (allowMissing && response.status === 404) return '';
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${u}`);
+  return response.text();
+};
 
 // ---- 1. CSV ----
 console.log('\n[1] 日榜 CSV');
@@ -24,8 +29,11 @@ console.log('\n[2] 周榜 HTML');
 const weekMonday = currentWeekMonday();
 console.log('  本周一 = ' + weekMonday);
 let weeklyRows = null, usedWeek = null;
-for (const w of [weekMonday, '2026-10-26', '2026-10-19']) {
-  const html = await get('https://hysenlabs.com/weekly/' + w);
+for (const offset of [0, 7, 14]) {
+  const day = new Date(weekMonday + 'T00:00:00Z');
+  day.setUTCDate(day.getUTCDate() - offset);
+  const w = day.toISOString().slice(0, 10);
+  const html = await get('https://hysenlabs.com/weekly/' + w, true);
   const rows = parseWeeklyHtml(html);
   if (rows && rows.length > 0) { weeklyRows = rows; usedWeek = w; break; }
 }

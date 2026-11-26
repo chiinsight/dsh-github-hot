@@ -30,8 +30,8 @@ for (const [d, exp] of months) {
 }
 
 console.log('\n[4] 边界情况');
-ok(dataDateText(null, 'zh') === '今日', '空数据中文', dataDateText(null,'zh'));
-ok(dataDateText(null, 'en') === 'today', '空数据英文', dataDateText(null,'en'));
+ok(dataDateText(null, 'zh') === '日期未知', '空数据中文', dataDateText(null,'zh'));
+ok(dataDateText(null, 'en') === 'Date unavailable', '空数据英文', dataDateText(null,'en'));
 ok(dataDateText({week:'2026-10-26'}, 'zh') === '26.10.26', '周榜用 week 字段', dataDateText({week:'2026-10-26'},'zh'));
 
 ok(dataDateText({window:{end:'November 8, 2026'}}, 'zh') === '26.11.8', '周榜英文日期按真实窗口显示');

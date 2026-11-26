@@ -208,6 +208,9 @@ test('manual fetch bypasses fresh cache and deduplicates repeated requests to th
   const first = await get('/dsh-github-hot/boards?force=1&period=day');
   await new Promise(setImmediate);
   assert.equal(first.body.refreshing, true);
+  const pending = await boards();
+  assert.equal(pending.body.refreshing, true, 'polling still sees a manual refresh when the old cache is fresh');
+  assert.deepEqual(pending.body.refreshingPeriods, ['day']);
   await get('/dsh-github-hot/boards?force=1&period=day');
   assert.equal(calls, 1);
   assert.equal(options.cache, 'no-store');
@@ -232,4 +235,33 @@ test('manual fetch retries a failed board during automatic backoff', async () =>
   await get('/dsh-github-hot/boards?force=1&period=day');
   await new Promise(setImmediate);
   assert.equal(calls, before + 1);
+});
+
+test('invalid upstream CSV preserves the last good ranking', async () => {
+  I.__resetBoardState();
+  const end = sourceYesterday();
+  seedBoards({ dayEnd: end, monthEnd: end });
+  globalThis.fetch = async () => ({ ok: true, text: async () => 'repository,stars_gained,window_end\nnot-a-repo,abc,' + end });
+  await get('/dsh-github-hot/boards?force=1&period=day');
+  await new Promise(setImmediate);
+  const { body } = await boards();
+  const day = body.boards.find((board) => board.id === 'day');
+  assert.equal(day.ok, false);
+  assert.match(day.error, /没有有效项目/);
+  assert.equal(day.rows[0].repository, 'o/r');
+});
+
+
+test('an earlier source snapshot cannot replace a newer cached ranking', async () => {
+  I.__resetBoardState();
+  seedBoards({ dayEnd: sourceYesterday(), monthEnd: sourceYesterday() });
+  globalThis.fetch = async () => ({ ok: true, text: async () =>
+    'repository,stars_gained,window_end\nolder/project,10,2020-01-01' });
+  await get('/dsh-github-hot/boards?force=1&period=day');
+  await new Promise(setImmediate);
+  const { body } = await boards();
+  const day = body.boards.find((b) => b.id === 'day');
+  assert.match(day.error, /更早的榜单快照/);
+  assert.equal(day.window.end, sourceYesterday());
+  assert.equal(day.rows[0].repository, 'o/r');
 });
